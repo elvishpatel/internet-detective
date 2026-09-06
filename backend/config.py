@@ -15,7 +15,7 @@ class Settings:
     require_ai_verification: bool = os.getenv("REQUIRE_AI_VERIFICATION", "true").lower() == "true"
     ai_provider: str = os.getenv("AI_PROVIDER", "huggingface").lower()
     huggingface_api_key: str = os.getenv("HUGGINGFACE_API_KEY", "")
-    huggingface_model: str = os.getenv("HUGGINGFACE_MODEL", "google/gemma-2-2b-it:fastest")
+    huggingface_model: str = os.getenv("HUGGINGFACE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
 
 
 settings = Settings()

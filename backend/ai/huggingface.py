@@ -32,7 +32,12 @@ Respond in 2–5 concise sentences: say whether the verdict overstates the suppl
         try:
             async with httpx.AsyncClient(timeout=35) as client:
                 response = await client.post(self.endpoint, headers=headers, json=payload)
-                response.raise_for_status()
+                if response.status_code >= 400:
+                    detail = response.text[:500]
+                    raise AIUnavailableError(
+                        f"Required Hugging Face verification failed: {response.status_code} for model "
+                        f"'{settings.huggingface_model}'. Provider said: {detail}"
+                    )
             data = response.json()
             note = data["choices"][0]["message"]["content"].strip()
             if not note: raise AIUnavailableError("The AI verifier returned an empty review.")

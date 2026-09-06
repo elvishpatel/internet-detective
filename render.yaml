@@ -18,4 +18,4 @@ services:
       - key: HUGGINGFACE_API_KEY
         sync: false
       - key: HUGGINGFACE_MODEL
-        value: google/gemma-2-2b-it:fastest
+        value: Qwen/Qwen2.5-7B-Instruct
