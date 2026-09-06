@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: internet-detective-api
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: DATABASE_PATH
+        value: ./data/investigator.db
+      - key: FRONTEND_URL
+        sync: false
+      - key: ENABLE_LOCAL_AI
+        value: "false"
+      - key: REQUIRE_AI_VERIFICATION
+        value: "true"
+      - key: AI_PROVIDER
+        value: huggingface
+      - key: HUGGINGFACE_API_KEY
+        sync: false
+      - key: HUGGINGFACE_MODEL
+        value: google/gemma-2-2b-it:fastest

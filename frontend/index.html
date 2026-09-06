@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Internet Detective — evidence-backed public-web investigations.">
+  <title>Internet Detective — Don't Just Search. Investigate.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="grain"></div>
+  <main>
+    <section id="landing" class="landing">
+      <nav><a class="brand" href="#"><span class="brand-mark">◉</span> INTERNET DETECTIVE</a><span class="system"><i></i> SYSTEMS NOMINAL</span></nav>
+      <div class="hero-eyebrow">OPEN-SOURCE INTELLIGENCE / CASEWORK</div>
+      <h1>DON'T JUST SEARCH.<br><em>INVESTIGATE.</em></h1>
+      <p class="hero-copy">Turn a claim, rumor, or hypothesis into a transparent case file — sources, evidence chains, counterarguments, and the gaps that remain.</p>
+      <form id="investigation-form" class="claim-box">
+        <label for="claim">ENTER A CLAIM TO INVESTIGATE</label>
+        <textarea id="claim" minlength="8" maxlength="600" placeholder="Is this company preparing to enter a new market?" required></textarea>
+        <div class="claim-actions"><button type="button" id="example">Try an example ↗</button><div class="mode"><input id="deep" type="checkbox"><label for="deep">DEEP CASEWORK</label></div><button class="primary" type="submit">OPEN CASE <span>→</span></button></div>
+      </form>
+      <div class="trust"><span>PUBLIC WEB ONLY</span><span>•</span><span>NO FABRICATED SOURCES</span><span>•</span><span>AI OPTIONAL</span></div>
+      <section class="demo-section"><div><span class="eyebrow">EXHIBIT FILES</span><h2>See the board before you open a case.</h2></div><div class="demo-cards"><button class="demo" data-demo="expansion"><b>CASE 001</b><span>Company expansion</span><small>9 evidence signals</small></button><button class="demo" data-demo="product"><b>CASE 002</b><span>Potential product launch</span><small>Conflicting signals</small></button><button class="demo" data-demo="viral"><b>CASE 003</b><span>Viral claim investigation</span><small>Claim challenged</small></button></div></section>
+    </section>
+    <section id="progress" class="hidden progress-view"><div class="case-top"><button class="back">← NEW CASE</button><span id="case-id">CASE —</span></div><div class="scanner"><div class="scanline"></div><p class="eyebrow">ACTIVE INVESTIGATION</p><h2 id="progress-stage">Initialising case...</h2><p id="progress-note">Preparing a structured research plan.</p><div class="meter"><span id="meter"></span></div></div><div class="pipeline" id="pipeline"></div></section>
+    <section id="board" class="hidden board">
+      <header class="case-header"><button class="back">← NEW CASE</button><span id="board-id"></span><span class="demo-badge hidden" id="demo-badge">DEMO DATA</span></header>
+      <div class="verdict"><div><span class="eyebrow">CASE VERDICT</span><h2 id="board-claim"></h2><p id="verdict-copy"></p></div><button id="score-button" class="score"><strong id="confidence">--</strong><small>/ 100</small><span id="label">ANALYZING</span></button></div>
+      <div class="stats" id="stats"></div>
+      <div class="tabs"><button class="active" data-panel="evidence">Evidence</button><button data-panel="timeline">Timeline</button><button data-panel="graph">Evidence graph</button><button data-panel="sources">Research log</button></div>
+      <section id="panel-evidence" class="panel active"><div class="section-title"><div><span class="eyebrow">OBSERVATIONS, NOT ASSUMPTIONS</span><h3>Evidence ledger</h3></div><div class="filter"><button class="active" data-filter="all">All</button><button data-filter="supporting">Supporting</button><button data-filter="contradicting">Contradicting</button></div></div><div id="evidence-list" class="evidence-list"></div></section>
+      <section id="panel-timeline" class="panel"><div class="section-title"><div><span class="eyebrow">CHRONOLOGY</span><h3>Public record timeline</h3></div></div><div id="timeline" class="timeline"></div></section>
+      <section id="panel-graph" class="panel"><div class="section-title"><div><span class="eyebrow">CONNECTIONS</span><h3>Evidence graph</h3></div></div><div id="graph" class="graph"></div></section>
+      <section id="panel-sources" class="panel"><div class="section-title"><div><span class="eyebrow">REPRODUCIBLE METHOD</span><h3>Research log</h3></div></div><div id="research-log" class="research-log"></div></section>
+      <div class="bottom-grid"><article class="unknown"><span class="eyebrow">WHAT WE DON'T KNOW</span><h3>Missing evidence matters.</h3><ul id="unknowns"></ul></article><article class="challenge"><span class="eyebrow">ADVERSARIAL PASS</span><h3>Challenge this conclusion.</h3><p>Search for counter-evidence and alternative explanations before treating this verdict as settled.</p><button id="challenge-button">ATTACK VERDICT →</button><div id="challenge-output"></div></article></div>
+      <footer>INTERNET DETECTIVE · PUBLIC INFORMATION ONLY · <span id="ai-note"></span></footer>
+    </section>
+  </main><script src="config.js"></script><script src="api.js"></script><script src="graph.js"></script><script src="timeline.js"></script><script src="app.js"></script>
+</body></html>
