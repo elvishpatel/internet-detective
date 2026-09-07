@@ -41,7 +41,7 @@ Respond in 2–5 concise sentences: say whether the verdict overstates the suppl
                     detail = response.text[:500]
                     raise AIUnavailableError(
                         f"Required Hugging Face verification failed: {response.status_code} for model "
-                        f"'{settings.huggingface_model}'. Provider said: {detail}"
+                        f"'{model_id}'. Provider said: {detail}"
                     )
             data = response.json()
             note = data["choices"][0]["message"]["content"].strip()
