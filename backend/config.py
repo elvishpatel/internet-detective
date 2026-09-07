@@ -16,6 +16,10 @@ class Settings:
     ai_provider: str = os.getenv("AI_PROVIDER", "huggingface").lower()
     huggingface_api_key: str = os.getenv("HUGGINGFACE_API_KEY", "")
     huggingface_model: str = os.getenv("HUGGINGFACE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
+    # Pin the router to a specific inference provider (e.g. "hf-inference", "together",
+    # "novita"). Leave blank to let the router auto-select, which can land on a
+    # dedicated-only endpoint and fail. Default to hf-inference for serverless access.
+    huggingface_provider: str = os.getenv("HUGGINGFACE_PROVIDER", "hf-inference")
 
 
 settings = Settings()

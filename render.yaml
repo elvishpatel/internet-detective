@@ -19,3 +19,5 @@ services:
         sync: false
       - key: HUGGINGFACE_MODEL
         value: Qwen/Qwen2.5-7B-Instruct
+      - key: HUGGINGFACE_PROVIDER
+        value: hf-inference

@@ -28,7 +28,12 @@ DETERMINISTIC SCORE: {score['confidence']}/100 ({score['label']})
 
 Respond in 2–5 concise sentences: say whether the verdict overstates the supplied evidence, identify the strongest support and strongest limitation, and state whether any excerpt was misclassified. Do not give a new numeric score."""
         headers = {"Authorization": f"Bearer {settings.huggingface_api_key}", "Content-Type": "application/json"}
-        payload = {"model": settings.huggingface_model, "messages": [{"role": "system", "content": "You are a careful evidence reviewer."}, {"role": "user", "content": prompt}], "temperature": 0.1, "max_tokens": 300, "stream": False}
+        # Pin the downstream provider so the router doesn't auto-select a dedicated-only
+        # endpoint (e.g. Together's ...-Turbo variant). Format is "model:provider".
+        model_id = settings.huggingface_model
+        if settings.huggingface_provider and ":" not in model_id:
+            model_id = f"{model_id}:{settings.huggingface_provider}"
+        payload = {"model": model_id, "messages": [{"role": "system", "content": "You are a careful evidence reviewer."}, {"role": "user", "content": prompt}], "temperature": 0.1, "max_tokens": 300, "stream": False}
         try:
             async with httpx.AsyncClient(timeout=35) as client:
                 response = await client.post(self.endpoint, headers=headers, json=payload)
