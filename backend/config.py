@@ -16,11 +16,10 @@ class Settings:
     ai_provider: str = os.getenv("AI_PROVIDER", "huggingface").lower()
     huggingface_api_key: str = os.getenv("HUGGINGFACE_API_KEY", "")
     huggingface_model: str = os.getenv("HUGGINGFACE_MODEL", "Qwen/Qwen2.5-7B-Instruct")
-    # Pin the router to a specific inference provider (e.g. "novita", "nebius",
-    # "hf-inference", "together"). If the model isn't served serverless by the pinned
-    # provider, the router falls back to whatever provider has it — which can be a
-    # dedicated-only endpoint that 400s. novita/nebius serve the Qwen2.5 line serverless.
-    huggingface_provider: str = os.getenv("HUGGINGFACE_PROVIDER", "novita")
+    # Pin the router to a specific inference provider (e.g. "together", "novita",
+    # "featherless-ai"). For Qwen/Qwen2.5-7B-Instruct, the serverless provider is "together".
+    # You can also set this to "auto" or "" to let Hugging Face's router select automatically.
+    huggingface_provider: str = os.getenv("HUGGINGFACE_PROVIDER", "together")
 
 
 settings = Settings()

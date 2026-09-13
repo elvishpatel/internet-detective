@@ -30,9 +30,10 @@ Respond in 2–5 concise sentences: say whether the verdict overstates the suppl
         headers = {"Authorization": f"Bearer {settings.huggingface_api_key}", "Content-Type": "application/json"}
         # Pin the downstream provider so the router doesn't auto-select a dedicated-only
         # endpoint (e.g. Together's ...-Turbo variant). Format is "model:provider".
-        model_id = settings.huggingface_model
-        if settings.huggingface_provider and ":" not in model_id:
-            model_id = f"{model_id}:{settings.huggingface_provider}"
+        model_id = settings.huggingface_model.strip()
+        provider = (settings.huggingface_provider or "").strip()
+        if provider and provider.lower() not in ("auto", "none", "router") and ":" not in model_id:
+            model_id = f"{model_id}:{provider}"
         payload = {"model": model_id, "messages": [{"role": "system", "content": "You are a careful evidence reviewer."}, {"role": "user", "content": prompt}], "temperature": 0.1, "max_tokens": 300, "stream": False}
         try:
             async with httpx.AsyncClient(timeout=35) as client:
