@@ -13,11 +13,21 @@ services:
         value: "false"
       - key: REQUIRE_AI_VERIFICATION
         value: "true"
+      # A verifier outage degrades the case to a clearly-labelled "not reviewed"
+      # result instead of failing the whole investigation.
+      - key: AI_DEGRADE_GRACEFULLY
+        value: "true"
       - key: AI_PROVIDER
         value: huggingface
       - key: HUGGINGFACE_API_KEY
         sync: false
+      # Left empty on purpose. The app asks the Hugging Face router which models
+      # are live for this token and picks one, so a provider retiring a model
+      # (as Together did with Qwen2.5-7B-Instruct) no longer breaks the service.
+      # Pin a repo id here only if you want to force a specific model.
       - key: HUGGINGFACE_MODEL
-        value: Qwen/Qwen2.5-7B-Instruct
+        value: ""
       - key: HUGGINGFACE_PROVIDER
-        value: together
+        value: auto
+      - key: HUGGINGFACE_DISCOVER_MODELS
+        value: "true"

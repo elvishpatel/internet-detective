@@ -84,21 +84,45 @@ Run the focused logic tests with:
 python -m unittest discover -s tests -v
 ```
 
-## Mandatory AI verification
+## AI verification
 
-Every live case now requires a successful verifier response. If the token is missing, the provider is down, has no available free credit, or returns an error, the case ends with a clear verification failure instead of returning an unreviewed verdict. This is the behavior requested for a mandatory check.
+Every live case asks a hosted model to review the assembled evidence before the case is presented. The AI never controls the numeric score and never gains web access; it only checks whether the verdict overstates the excerpts it was given.
 
-The recommended public setup uses [Hugging Face Inference Providers](https://huggingface.co/docs/inference-providers/index). Create a Hugging Face account, then create a **fine-grained token** with **Make calls to Inference Providers** permission. Add it to `.env` locally or Render as `HUGGINGFACE_API_KEY`; do not put it in the frontend or GitHub. The integration uses its documented OpenAI-compatible `https://router.huggingface.co/v1/chat/completions` endpoint and the `google/gemma-2-2b-it:fastest` default model. Hugging Face provides monthly experimentation credits, but they are limited; mandatory hosted verification is therefore not permanently free at arbitrary traffic. [HF pricing](https://huggingface.co/docs/inference-providers/en/pricing) explains the credit model.
+### Why the verifier used to break
 
-Use this public-production configuration:
+Hugging Face's router does not host models itself. It forwards each request to whichever third-party provider currently serves that repo, and those mappings change without notice. When Together AI retired the serverless build of `Qwen/Qwen2.5-7B-Instruct`, the router began answering `400 model_not_available`, and because the old code was pinned to that one model, no environment-variable value could bring it back.
+
+The verifier is no longer pinned. On the first call it asks `https://router.huggingface.co/v1/models` which repos are live for your token, builds an ordered plan of `model:provider` attempts (smallest and cheapest first), and cascades through them until one answers. The winning combination is cached for later cases. If every seeded model disappears, it sweeps the live catalogue for a replacement instead of failing.
+
+### Configuration
 
 ```text
 REQUIRE_AI_VERIFICATION=true
+AI_DEGRADE_GRACEFULLY=true
 AI_PROVIDER=huggingface
 HUGGINGFACE_API_KEY=hf_your_secret_token
-HUGGINGFACE_MODEL=google/gemma-2-2b-it:fastest
+HUGGINGFACE_MODEL=
+HUGGINGFACE_PROVIDER=auto
 ENABLE_LOCAL_AI=false
 ```
+
+Leave `HUGGINGFACE_MODEL` empty unless you want to force a specific model; the discovery pass is what keeps the service alive across provider changes. Create the token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens) as a **fine-grained** token with the **Make calls to Inference Providers** permission, and add it to `.env` locally or to Render as a secret. Never put it in the frontend or commit it. Hugging Face's monthly experimentation credits are limited, so hosted verification is not permanently free at arbitrary traffic; [HF pricing](https://huggingface.co/docs/inference-providers/en/pricing) explains the credit model.
+
+### Diagnosing it
+
+Run this from the repository root before touching deployment settings:
+
+```bash
+python scripts/check_ai.py
+```
+
+It loads `.env`, lists how many models your token can reach, sends a real one-word request to each candidate until one answers, and prints the exact environment variables to paste into Render. It distinguishes the three failures that look identical from the outside: a token missing the inference permission, exhausted credits, and a model that simply moved off serverless.
+
+On a deployed instance, `GET /api/health` reports the AI configuration without secrets, and `GET /api/health/ai` performs the same live probe and names the model that answered.
+
+### Graceful degradation
+
+With `AI_DEGRADE_GRACEFULLY=true` (the default), a total verifier outage no longer throws the investigation away. The case completes, and the AI review panel says plainly that the verdict was **not reviewed**, along with the reason. The deterministic research engine was always the source of truth, so losing the second pass should degrade the product rather than delete it. Set `AI_DEGRADE_GRACEFULLY=false` to restore the original hard-fail behaviour.
 
 ### Local model alternative
 
@@ -117,7 +141,7 @@ ENABLE_LOCAL_AI=true
 OLLAMA_URL=http://localhost:11434
 ```
 
-The AI receives only the strongest supplied excerpts and is asked to flag unsupported inference; it never controls the main score. With mandatory verification enabled, Ollama being unavailable causes the case to fail rather than silently substituting a non-AI review.
+The AI receives only the strongest supplied excerpts and is asked to flag unsupported inference; it never controls the main score. If Ollama is unreachable, the case degrades to a labelled unreviewed verdict (or hard-fails, if you set `AI_DEGRADE_GRACEFULLY=false`).
 
 ## Transparent scoring and source independence
 
@@ -132,7 +156,7 @@ Repeated URLs are normalized and dropped; identical extracted text is content-ha
 1. Push the repository to GitHub.
 2. Create a Render account, choose **New → Blueprint**, and select `elvishpatel/internet-detective`. `render.yaml` supplies `pip install -r backend/requirements.txt` and `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`.
 3. In the service’s Environment tab, enter `HUGGINGFACE_API_KEY` as a secret. Set `FRONTEND_URL` temporarily to your eventual Vercel domain, or update it after frontend deployment. Keep `ENABLE_LOCAL_AI=false`, `AI_PROVIDER=huggingface`, and `REQUIRE_AI_VERIFICATION=true`.
-4. Deploy and verify `https://YOUR-RENDER-SERVICE/api/health`. Then start one investigation: it must either complete with an `AI REVIEW: Hugging Face Inference Providers` footer or explicitly report an AI verification failure.
+4. Deploy and verify `https://YOUR-RENDER-SERVICE/api/health`, then `https://YOUR-RENDER-SERVICE/api/health/ai` to confirm a model actually answers and see which one. Then start one investigation: it must complete with an `AI REVIEW: Hugging Face Inference Providers` footer, or an explicitly labelled unreviewed verdict.
 
 Render’s ephemeral filesystem means the SQLite cache may reset after a redeploy or instance replacement. For a small public demo this is acceptable; use a persistent disk or managed database before relying on retention.
 

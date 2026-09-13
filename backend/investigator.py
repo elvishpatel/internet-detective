@@ -20,12 +20,55 @@ from backend.ai.huggingface import HuggingFaceProvider, AIUnavailableError
 HEADERS = {"User-Agent": "InternetDetective/1.0 (+respectful public research)"}
 
 
+def _unverified(exc: Exception) -> dict:
+    """A case the AI never reviewed, labelled so nobody mistakes it for a verified one."""
+    return {
+        "available": False,
+        "required": settings.require_ai_verification,
+        "degraded": True,
+        "provider": "AI verification unavailable",
+        "model": "not reviewed",
+        "note": (
+            "This case was NOT reviewed by the AI verifier. The deterministic evidence engine "
+            "produced the verdict and every source link is unchanged, but no second pass checked "
+            "whether the conclusion overstates the evidence. Treat it as unreviewed. Reason: "
+            + str(exc)[:500]
+        ),
+    }
+
+
+async def _verify(claim: str, evidence: list, scoring: dict) -> dict:
+    """Run the AI review, degrading to a labelled 'unreviewed' result when configured to."""
+    try:
+        if settings.ai_provider == "ollama":
+            if not settings.enable_local_ai:
+                raise AIUnavailableError("AI_PROVIDER is ollama but ENABLE_LOCAL_AI is false.")
+            provider = OllamaProvider()
+        elif settings.ai_provider == "huggingface":
+            provider = HuggingFaceProvider()
+        else:
+            raise AIUnavailableError("AI_PROVIDER must be 'huggingface' or 'ollama'.")
+        ai = await provider.review_conclusion(claim, evidence, scoring)
+        ai.setdefault("provider", provider.name)
+        ai.setdefault("degraded", False)
+        ai["required"] = settings.require_ai_verification
+        return ai
+    except Exception as exc:
+        if settings.require_ai_verification and not settings.ai_degrade_gracefully:
+            raise AIUnavailableError(str(exc)) from exc
+        return _unverified(exc)
+
+
 async def run(case_id: str, claim: str, mode: str):
     try:
-        if settings.require_ai_verification and settings.ai_provider == "huggingface" and not settings.huggingface_api_key:
-            raise AIUnavailableError("AI verification is required. Configure HUGGINGFACE_API_KEY before opening a case.")
-        if settings.require_ai_verification and settings.ai_provider == "ollama" and not settings.enable_local_ai:
-            raise AIUnavailableError("AI verification is required. Set ENABLE_LOCAL_AI=true or use AI_PROVIDER=huggingface.")
+        # Only refuse to open a case up-front when a missing verifier is fatal. With
+        # AI_DEGRADE_GRACEFULLY on, the research still has value, so we run the case
+        # and label the missing review honestly at the end instead.
+        if settings.require_ai_verification and not settings.ai_degrade_gracefully:
+            if settings.ai_provider == "huggingface" and not settings.huggingface_api_key:
+                raise AIUnavailableError("AI verification is required. Configure HUGGINGFACE_API_KEY before opening a case.")
+            if settings.ai_provider == "ollama" and not settings.enable_local_ai:
+                raise AIUnavailableError("AI verification is required. Set ENABLE_LOCAL_AI=true or use AI_PROVIDER=huggingface.")
         db.update_status(case_id, "researching", "Decomposing claim and creating investigation plan")
         parts = decompose(claim)
         queries = build_queries(claim, parts, settings.max_queries)
@@ -63,28 +106,14 @@ async def run(case_id: str, claim: str, mode: str):
         evidence = evidence[:18]
         scoring = score(evidence, len(sources))
         contradictions = find_contradictions(evidence)
-        db.update_status(case_id, "verifying", "Running required AI evidence verification")
-        if settings.ai_provider == "ollama":
-            if not settings.enable_local_ai:
-                raise AIUnavailableError("AI_PROVIDER is ollama but ENABLE_LOCAL_AI is false.")
-            provider = OllamaProvider()
-        elif settings.ai_provider == "huggingface":
-            provider = HuggingFaceProvider()
-        else:
-            raise AIUnavailableError("AI_PROVIDER must be 'huggingface' or 'ollama'.")
-        try:
-            ai = await provider.review_conclusion(claim, evidence, scoring)
-            ai["required"] = settings.require_ai_verification
-        except Exception as exc:
-            if settings.require_ai_verification:
-                raise AIUnavailableError(str(exc)) from exc
-            ai = {"available": False, "required": False, "provider": "Not configured", "note": "AI review was disabled by configuration."}
+        db.update_status(case_id, "verifying", "Running AI evidence verification")
+        ai = await _verify(claim, evidence, scoring)
         result = {
             "id": case_id, "claim": claim, "mode": mode, "decomposition": parts, "plan": ["Official and primary evidence", "Public reporting", "Hiring, technical, and regulatory signals", "Contradicting evidence and alternative explanations"],
             "queries": queries, "stats": {"discovered": len(found), "usable": len(sources), "duplicates": max(0, len(found)-len(sources)), "documents": len(documents), "independent_chains": scoring["independent_chains"]},
             "evidence": evidence, "timeline": timeline[:12], "graph": build_graph(claim, evidence), "contradictions": contradictions,
             "score": scoring, "unknowns": ["No direct official confirmation was found in the retrieved public material.", "Absence of a public record is not evidence that an event will not occur.", "Some sources may be incomplete, inaccessible, or published after this investigation."],
-            "ai_review": ai, "method_note": "Sources were discovered through public search results, fetched individually where accessible, deduplicated by normalized URL and content hash, then scored with visible heuristic weights. The case is only completed after the required AI evidence review. Search snippets are never treated as proof."
+            "ai_review": ai, "method_note": "Sources were discovered through public search results, fetched individually where accessible, deduplicated by normalized URL and content hash, then scored with visible heuristic weights. " + ("The AI evidence review could not run for this case, so the verdict below is unreviewed." if ai.get("degraded") else "The case was completed after a successful AI evidence review.") + " Search snippets are never treated as proof."
         }
         db.record(case_id, "evidence", [(case_id, x["source_url"], x["stance"], x["strength"], x["excerpt"], x["reasoning"]) for x in evidence])
         db.save_result(case_id, result)

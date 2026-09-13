@@ -148,7 +148,8 @@ confident.
    | `AI_PROVIDER` | `huggingface` |
    | `REQUIRE_AI_VERIFICATION` | `true` |
    | `ENABLE_LOCAL_AI` | `false` |
-   | `HUGGINGFACE_MODEL` | `google/gemma-2-2b-it:fastest` |
+   | `HUGGINGFACE_MODEL` | `Qwen/Qwen2.5-7B-Instruct` |
+   | `HUGGINGFACE_PROVIDER` | `together` (or `auto`) |
    | `DATABASE_PATH` | `./data/investigator.db` |
    | `FRONTEND_URL` | `*` for now — you'll set the real Vercel URL in Step 5 |
 
